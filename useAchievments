@@ -1,0 +1,49 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { getNewlyEarnedBadges, BADGES } from '@/lib/badges';
+import { toast } from 'sonner';
+
+/**
+ * Checks for newly earned badges and saves them.
+ * Call this after any action that could unlock a badge (save workout, post, etc.)
+ */
+export async function checkAndAwardBadges(userEmail, workouts, posts, profile, existingAchievements) {
+  if (!userEmail) return [];
+
+  const existingIds = existingAchievements?.map(a => a.badge_id) || [];
+  const newIds = getNewlyEarnedBadges(existingIds, workouts, posts, profile);
+
+  if (newIds.length === 0) return [];
+
+  // Save new achievements
+  await Promise.all(
+    newIds.map(badge_id =>
+      base44.entities.Achievement.create({
+        user_email: userEmail,
+        badge_id,
+        earned_at: new Date().toISOString(),
+      })
+    )
+  );
+
+  // Show toast for each new badge
+  newIds.forEach(id => {
+    const badge = BADGES.find(b => b.id === id);
+    if (badge) {
+      toast(
+        `${badge.emoji} Achievement Unlocked!`,
+        {
+          description: `"${badge.label}" — ${badge.description}`,
+          duration: 5000,
+          style: {
+            background: 'hsl(20, 8%, 9%)',
+            border: '1px solid hsl(268, 85%, 62% / 0.4)',
+            color: 'hsl(40, 15%, 94%)',
+          },
+        }
+      );
+    }
+  });
+
+  return newIds;
+}
