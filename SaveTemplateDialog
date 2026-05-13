@@ -1,0 +1,66 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { BookmarkPlus } from 'lucide-react';
+import { toast } from 'sonner';
+
+export default function SaveTemplateDialog({ workout, userEmail, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(workout.title || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim()) { toast.error('Give the template a name'); return; }
+    setSaving(true);
+    await base44.entities.WorkoutTemplate.create({
+      user_email: userEmail,
+      name: name.trim(),
+      type: workout.type,
+      exercises: workout.exercises,
+      notes: workout.notes,
+    });
+    toast.success('Template saved! 📋');
+    setOpen(false);
+    setSaving(false);
+    onSaved?.();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="text-xs h-8 border-primary/30 text-primary hover:bg-primary/10">
+          <BookmarkPlus className="w-3.5 h-3.5 mr-1.5" /> Save as Template
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-card border-border max-w-sm">
+        <DialogHeader><DialogTitle className="font-heading">Save as Template</DialogTitle></DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Save this workout's exercises, sets & reps as a reusable template.
+        </p>
+        <div className="space-y-3 mt-1">
+          <Input
+            placeholder="Template name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className="bg-secondary border-0"
+            autoFocus
+          />
+          <div className="text-xs text-muted-foreground space-y-1 bg-secondary/50 rounded-lg p-3">
+            <p className="font-medium text-foreground">Exercises included:</p>
+            {workout.exercises?.length > 0
+              ? workout.exercises.map((ex, i) => (
+                  <p key={i}>• {ex.name || 'Unnamed'} — {ex.sets?.length || 0} set{ex.sets?.length !== 1 ? 's' : ''}</p>
+                ))
+              : <p className="text-muted-foreground">No exercises added yet</p>
+            }
+          </div>
+          <Button onClick={handleSave} disabled={saving || !workout.exercises?.length} className="w-full bg-primary hover:bg-primary/90">
+            {saving ? 'Saving…' : 'Save Template'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
