@@ -1,0 +1,104 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
+import { format, addDays } from 'date-fns';
+
+const EMOJIS = ['🏋️', '💪', '🔥', '⚡', '🏆', '🎯', '🚀', '💯'];
+
+export default function CreateChallengeDialog({ user, onCreated }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    type: 'workout_count',
+    goal: '',
+    emoji: '🔥',
+    start_date: format(new Date(), 'yyyy-MM-dd'),
+    end_date: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+  });
+
+  const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleCreate = async () => {
+    if (!form.title || !form.goal) { toast.error('Fill in title and goal'); return; }
+    setSaving(true);
+    await base44.entities.Challenge.create({
+      ...form,
+      goal: Number(form.goal),
+      unit: form.type === 'volume_lifted' ? 'kg' : 'workouts',
+      participants: [user?.email],
+      creator_name: user?.full_name || user?.email,
+    });
+    toast.success('Challenge created! 🎯');
+    setOpen(false);
+    setSaving(false);
+    onCreated?.();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="border-primary/40 text-primary hover:bg-primary/10 text-xs">
+          <Plus className="w-3.5 h-3.5 mr-1" /> New Challenge
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-card border-border max-w-sm">
+        <DialogHeader><DialogTitle className="font-heading">Create a Challenge</DialogTitle></DialogHeader>
+        <div className="space-y-3 mt-1">
+          {/* Emoji picker */}
+          <div className="flex gap-2 flex-wrap">
+            {EMOJIS.map(e => (
+              <button
+                key={e}
+                onClick={() => set('emoji', e)}
+                className={`text-lg p-1.5 rounded-lg transition-colors ${form.emoji === e ? 'bg-primary/20 ring-1 ring-primary' : 'hover:bg-secondary'}`}
+              >{e}</button>
+            ))}
+          </div>
+
+          <Input placeholder="Challenge name (e.g. 100k Club)" value={form.title} onChange={e => set('title', e.target.value)} className="bg-secondary border-0" />
+          <Textarea placeholder="Description (optional)" value={form.description} onChange={e => set('description', e.target.value)} className="bg-secondary border-0 resize-none h-16 text-sm" />
+
+          <div className="flex gap-2">
+            <Select value={form.type} onValueChange={v => set('type', v)}>
+              <SelectTrigger className="bg-secondary border-0 flex-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="workout_count">Workout Count</SelectItem>
+                <SelectItem value="volume_lifted">Volume Lifted (kg)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              placeholder="Goal"
+              value={form.goal}
+              onChange={e => set('goal', e.target.value)}
+              className="bg-secondary border-0 w-28"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Start</label>
+              <Input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} className="bg-secondary border-0 text-sm" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs text-muted-foreground mb-1 block">End</label>
+              <Input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} className="bg-secondary border-0 text-sm" />
+            </div>
+          </div>
+
+          <Button onClick={handleCreate} disabled={saving} className="w-full bg-primary hover:bg-primary/90">
+            {saving ? 'Creating…' : 'Launch Challenge 🚀'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
