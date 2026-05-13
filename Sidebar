@@ -1,0 +1,95 @@
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { 
+  Home, Dumbbell, Users, MessageSquare, ShoppingBag, 
+  Pill, Sparkles, User, Trophy, Menu, X, Zap, LineChart
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+const navItems = [
+  { path: '/', icon: Home, label: 'Feed' },
+  { path: '/workout', icon: Dumbbell, label: 'Workout' },
+  { path: '/explore', icon: Users, label: 'Explore' },
+  { path: '/communities', icon: MessageSquare, label: 'Communities' },
+  { path: '/ai-coach', icon: Sparkles, label: 'AI Coach' },
+  { path: '/marketplace', icon: ShoppingBag, label: 'Programs' },
+  { path: '/supplements', icon: Pill, label: 'Supplements' },
+  { path: '/body-stats', icon: LineChart, label: 'Body Stats' },
+  { path: '/profile', icon: User, label: 'Profile' },
+];
+
+export default function Sidebar({ mobileOpen, setMobileOpen }) {
+  const location = useLocation();
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed top-0 left-0 h-full w-64 bg-card border-r border-border z-50 transition-transform duration-300 flex flex-col",
+        "lg:translate-x-0",
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        {/* Logo */}
+        <div className="p-6 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+              <Zap className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="font-heading text-xl font-bold tracking-tight">FORGE RACKD</span>
+          </Link>
+          <Button 
+            variant="ghost" size="icon" 
+            className="lg:hidden text-muted-foreground"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 space-y-1">
+          {navItems.map(({ path, icon: Icon, label }) => {
+            const isActive = location.pathname === path;
+            return (
+              <Link
+                key={path}
+                to={path}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  isActive 
+                    ? "bg-primary/10 text-primary" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                <Icon className={cn("w-[18px] h-[18px]", isActive && "text-primary")} />
+                <span>{label}</span>
+                {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom */}
+        <div className="p-4 mx-3 mb-3 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20">
+          <div className="flex items-center gap-2 mb-2">
+            <Trophy className="w-4 h-4 text-primary" />
+            <span className="text-xs font-semibold text-primary">PRO TIP</span>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Consistency beats intensity. Show up every day and the results will follow.
+          </p>
+        </div>
+      </aside>
+    </>
+  );
+}
