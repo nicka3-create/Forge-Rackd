@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Deep iron-black background with warm steel undertone */
+    --background: 20 8% 5%;
+    --foreground: 40 15% 94%;
+    --card: 20 8% 8%;
+    --card-foreground: 40 15% 94%;
+    --popover: 20 8% 8%;
+    --popover-foreground: 40 15% 94%;
+
+    /* Electric violet — distinct, intense, gym-war-room energy */
+    --primary: 268 85% 62%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 20 8% 13%;
+    --secondary-foreground: 40 10% 80%;
+    --muted: 20 8% 13%;
+    --muted-foreground: 20 6% 50%;
+
+    /* Acid lime green — chalk & turf vibes */
+    --accent: 75 90% 48%;
+    --accent-foreground: 20 8% 5%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 8% 15%;
+    --input: 20 8% 15%;
+    --ring: 268 85% 62%;
+
+    /* Charts: violet, lime, blood orange, steel blue, gold */
+    --chart-1: 268 85% 62%;
+    --chart-2: 75 90% 48%;
+    --chart-3: 16 90% 55%;
+    --chart-4: 200 75% 55%;
+    --chart-5: 45 90% 55%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 20 8% 6%;
+    --sidebar-foreground: 40 10% 80%;
+    --sidebar-primary: 268 85% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 8% 13%;
+    --sidebar-accent-foreground: 40 10% 80%;
+    --sidebar-border: 20 8% 15%;
+    --sidebar-ring: 268 85% 62%;
+  }
+
+  .dark {
+    --background: 20 8% 5%;
+    --foreground: 40 15% 94%;
+    --card: 20 8% 8%;
+    --card-foreground: 40 15% 94%;
+    --popover: 20 8% 8%;
+    --popover-foreground: 40 15% 94%;
+    --primary: 268 85% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 20 8% 13%;
+    --secondary-foreground: 40 10% 80%;
+    --muted: 20 8% 13%;
+    --muted-foreground: 20 6% 50%;
+    --accent: 75 90% 48%;
+    --accent-foreground: 20 8% 5%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 8% 15%;
+    --input: 20 8% 15%;
+    --ring: 268 85% 62%;
+    --chart-1: 268 85% 62%;
+    --chart-2: 75 90% 48%;
+    --chart-3: 16 90% 55%;
+    --chart-4: 200 75% 55%;
+    --chart-5: 45 90% 55%;
+    --sidebar-background: 20 8% 6%;
+    --sidebar-foreground: 40 10% 80%;
+    --sidebar-primary: 268 85% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 8% 13%;
+    --sidebar-accent-foreground: 40 10% 80%;
+    --sidebar-border: 20 8% 15%;
+    --sidebar-ring: 268 85% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Platinum badge shimmer */
+@keyframes shimmer {
+  0% { transform: translateX(-150%) skewX(-12deg); }
+  60%, 100% { transform: translateX(250%) skewX(-12deg); }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(20 8% 6%);
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(20 8% 20%);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(268 85% 62% / 0.5);
+}
