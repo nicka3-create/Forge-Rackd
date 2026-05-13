@@ -1,0 +1,71 @@
+import { Toaster } from "@/components/ui/toaster"
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClientInstance } from '@/lib/query-client'
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import PageNotFound from './lib/PageNotFound';
+import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+
+import AppLayout from '@/components/layout/AppLayout';
+import Feed from '@/pages/Feed';
+import Workout from '@/pages/Workout';
+import Communities from '@/pages/Communities';
+import AICoach from '@/pages/AICoach';
+import Marketplace from '@/pages/Marketplace';
+import Supplements from '@/pages/Supplements';
+import Explore from '@/pages/Explore';
+import Profile from '@/pages/Profile';
+import BodyStats from '@/pages/BodyStats';
+
+const AuthenticatedApp = () => {
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+
+  if (isLoadingPublicSettings || isLoadingAuth) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (authError) {
+    if (authError.type === 'user_not_registered') {
+      return <UserNotRegisteredError />;
+    } else if (authError.type === 'auth_required') {
+      navigateToLogin();
+      return null;
+    }
+  }
+
+  return (
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<Feed />} />
+        <Route path="/workout" element={<Workout />} />
+        <Route path="/explore" element={<Explore />} />
+        <Route path="/communities" element={<Communities />} />
+        <Route path="/ai-coach" element={<AICoach />} />
+        <Route path="/marketplace" element={<Marketplace />} />
+        <Route path="/supplements" element={<Supplements />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/body-stats" element={<BodyStats />} />
+      </Route>
+      <Route path="*" element={<PageNotFound />} />
+    </Routes>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <QueryClientProvider client={queryClientInstance}>
+        <Router>
+          <AuthenticatedApp />
+        </Router>
+        <Toaster />
+      </QueryClientProvider>
+    </AuthProvider>
+  )
+}
+
+export default App
