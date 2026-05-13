@@ -1,0 +1,71 @@
+import React from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import CreatePostCard from '@/components/feed/CreatePostCard';
+import PostCard from '@/components/feed/PostCard';
+import QuickStats from '@/components/feed/QuickStats';
+import TrendingCommunities from '@/components/feed/TrendingCommunities';
+import { Loader2 } from 'lucide-react';
+
+export default function Feed() {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: posts, isLoading } = useQuery({
+    queryKey: ['posts'],
+    queryFn: () => base44.entities.Post.list('-created_date', 30),
+    initialData: [],
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ['myProfile', user?.email],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }),
+    enabled: !!user?.email,
+  });
+
+  const { data: communities } = useQuery({
+    queryKey: ['communities'],
+    queryFn: () => base44.entities.Community.list('-member_count', 10),
+    initialData: [],
+  });
+
+  const myProfile = profile?.[0];
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+      {/* Main Feed */}
+      <div className="space-y-4">
+        <div className="mb-2">
+          <h1 className="text-2xl font-heading font-bold">Feed</h1>
+          <p className="text-sm text-muted-foreground mt-1">See what the community is up to</p>
+        </div>
+
+        <CreatePostCard user={user} />
+
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-muted-foreground text-sm">No posts yet. Be the first to share!</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {posts.map(post => (
+              <PostCard key={post.id} post={post} userEmail={user?.email} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sidebar */}
+      <div className="hidden lg:block space-y-4">
+        <QuickStats profile={myProfile} />
+        <TrendingCommunities communities={communities} />
+      </div>
+    </div>
+  );
+}
