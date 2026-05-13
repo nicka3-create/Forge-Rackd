@@ -1,0 +1,77 @@
+import React from 'react';
+import { cn } from '@/lib/utils';
+import { TIER_ORDER } from '@/lib/badges';
+import { Lock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+const tierLabel = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' };
+
+export default function BadgeCard({ badge, earned, earnedAt }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              'relative flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all duration-200 cursor-default select-none',
+              earned
+                ? `border ${badge.borderColor} bg-gradient-to-b from-card to-secondary/60 hover:scale-105`
+                : 'border-border/40 bg-card/40 opacity-40 grayscale'
+            )}
+          >
+            {/* Tier glow ring on earned */}
+            {earned && (
+              <div className={cn(
+                'absolute inset-0 rounded-2xl opacity-10 bg-gradient-to-br pointer-events-none',
+                badge.color
+              )} />
+            )}
+
+            {/* Emoji badge */}
+            <div className={cn(
+              'relative w-12 h-12 rounded-xl flex items-center justify-center text-2xl',
+              earned
+                ? `bg-gradient-to-br ${badge.color} shadow-lg`
+                : 'bg-secondary'
+            )}>
+              {earned ? badge.emoji : <Lock className="w-4 h-4 text-muted-foreground/50" />}
+            </div>
+
+            {/* Label */}
+            <div className="text-center">
+              <p className={cn(
+                'text-[11px] font-bold leading-tight',
+                earned ? badge.textColor : 'text-muted-foreground/50'
+              )}>
+                {badge.label}
+              </p>
+              <p className={cn(
+                'text-[9px] uppercase tracking-widest mt-0.5 font-medium',
+                earned ? 'text-muted-foreground' : 'text-muted-foreground/30'
+              )}>
+                {tierLabel[badge.tier]}
+              </p>
+            </div>
+
+            {/* Platinum shimmer effect */}
+            {earned && badge.tier === 'platinum' && (
+              <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 animate-[shimmer_3s_ease-in-out_infinite]" />
+              </div>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="bg-card border-border text-xs max-w-[180px] text-center">
+          <p className="font-semibold mb-0.5">{badge.label}</p>
+          <p className="text-muted-foreground">{badge.description}</p>
+          {earned && earnedAt && (
+            <p className="text-primary mt-1 text-[10px]">
+              Earned {new Date(earnedAt).toLocaleDateString()}
+            </p>
+          )}
+          {!earned && <p className="text-muted-foreground/60 mt-1 text-[10px]">Not yet earned</p>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
