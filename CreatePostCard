@@ -1,0 +1,138 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Image, Trophy, Lightbulb, HelpCircle, Send, Loader2, X } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { checkAndAwardBadges } from '@/hooks/useAchievements';
+
+const postTypes = [
+  { value: 'update', label: 'Update', icon: Send },
+  { value: 'pr', label: 'New PR', icon: Trophy },
+  { value: 'tip', label: 'Tip', icon: Lightbulb },
+  { value: 'question', label: 'Question', icon: HelpCircle },
+];
+
+export default function CreatePostCard({ user }) {
+  const [content, setContent] = useState('');
+  const [type, setType] = useState('update');
+  const [imageUrls, setImageUrls] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setImageUrls(prev => [...prev, file_url]);
+    setUploading(false);
+  };
+
+  const { data: workouts } = useQuery({
+    queryKey: ['workouts'],
+    queryFn: () => base44.entities.Workout.list('-date', 100),
+    initialData: [],
+  });
+  const { data: profileArr } = useQuery({
+    queryKey: ['myProfile', user?.email],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }),
+    enabled: !!user?.email,
+  });
+  const { data: achievements } = useQuery({
+    queryKey: ['achievements', user?.email],
+    queryFn: () => base44.entities.Achievement.filter({ user_email: user?.email }),
+    enabled: !!user?.email,
+    initialData: [],
+  });
+
+  const handlePost = async () => {
+    if (!content.trim()) return;
+    setPosting(true);
+    await base44.entities.Post.create({
+      content,
+      type,
+      image_urls: imageUrls,
+      likes: [],
+      comments: [],
+      tags: [],
+      author_name: user?.full_name || 'Anonymous',
+      author_avatar: '',
+    });
+    await queryClient.invalidateQueries({ queryKey: ['posts'] });
+    toast.success('Post shared!');
+
+    // Check for social badges after posting
+    const updatedPosts = await base44.entities.Post.filter({ created_by: user?.email });
+    await checkAndAwardBadges(user?.email, workouts || [], updatedPosts, profileArr?.[0], achievements || []);
+    queryClient.invalidateQueries({ queryKey: ['achievements'] });
+
+    setContent('');
+    setImageUrls([]);
+    setType('update');
+    setPosting(false);
+  };
+
+  return (
+    <Card className="p-4 bg-card border-border">
+      <Textarea 
+        placeholder="Share your workout, PR, or tip..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="bg-secondary border-0 resize-none min-h-[80px] text-sm placeholder:text-muted-foreground/50"
+      />
+
+      {imageUrls.length > 0 && (
+        <div className="flex gap-2 mt-3 flex-wrap">
+          {imageUrls.map((url, i) => (
+            <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden">
+              <img src={url} alt="" className="w-full h-full object-cover" />
+              <button 
+                onClick={() => setImageUrls(prev => prev.filter((_, idx) => idx !== i))}
+                className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center"
+              >
+                <X className="w-2.5 h-2.5 text-white" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mt-3 gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          {postTypes.map(({ value, label, icon: Icon }) => (
+            <Badge 
+              key={value}
+              variant={type === value ? 'default' : 'secondary'}
+              className={`cursor-pointer text-xs px-2.5 py-1 ${type === value ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary/80'}`}
+              onClick={() => setType(value)}
+            >
+              <Icon className="w-3 h-3 mr-1" />
+              {label}
+            </Badge>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="cursor-pointer">
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            <div className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
+            </div>
+          </label>
+          <Button 
+            size="sm" 
+            onClick={handlePost} 
+            disabled={!content.trim() || posting}
+            className="bg-primary hover:bg-primary/90 text-xs px-4"
+          >
+            {posting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Post'}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
