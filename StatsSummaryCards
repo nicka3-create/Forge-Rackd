@@ -1,0 +1,44 @@
+import React from 'react';
+import { Card } from '@/components/ui/card';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
+const METRICS = [
+  { key: 'weight_kg', label: 'Weight', unit: 'kg', icon: '⚖️' },
+  { key: 'body_fat_pct', label: 'Body Fat', unit: '%', icon: '🔥' },
+  { key: 'arms_cm', label: 'Arms', unit: 'cm', icon: '💪' },
+  { key: 'waist_cm', label: 'Waist', unit: 'cm', icon: '📏' },
+];
+
+export default function StatsSummaryCards({ stats }) {
+  if (!stats?.length) return null;
+
+  const latest = stats[stats.length - 1];
+  const prev = stats.length > 1 ? stats[stats.length - 2] : null;
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {METRICS.map(m => {
+        const val = latest?.[m.key];
+        if (val == null) return null;
+        const prevVal = prev?.[m.key];
+        const diff = prevVal != null ? val - prevVal : null;
+        const isGood = m.key === 'body_fat_pct' || m.key === 'waist_cm' ? diff < 0 : diff > 0;
+
+        return (
+          <Card key={m.key} className="bg-card border-border p-4 text-center">
+            <div className="text-xl mb-1">{m.icon}</div>
+            <div className="text-2xl font-heading font-bold">{val.toFixed(1)}</div>
+            <div className="text-xs text-muted-foreground">{m.label} ({m.unit})</div>
+            {diff != null && diff !== 0 && (
+              <div className={`flex items-center justify-center gap-0.5 text-xs mt-1 font-medium ${isGood ? 'text-accent' : 'text-destructive'}`}>
+                {diff > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {diff > 0 ? '+' : ''}{diff.toFixed(1)}
+              </div>
+            )}
+            {diff === 0 && <div className="flex items-center justify-center gap-0.5 text-xs mt-1 text-muted-foreground"><Minus className="w-3 h-3" />No change</div>}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
