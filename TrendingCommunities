@@ -1,0 +1,49 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Users, ChevronRight } from 'lucide-react';
+
+const categoryColors = {
+  bodybuilding: 'bg-primary/10 text-primary',
+  powerlifting: 'bg-chart-4/10 text-chart-4',
+  fat_loss: 'bg-accent/10 text-accent',
+  crossfit: 'bg-chart-3/10 text-chart-3',
+  calisthenics: 'bg-chart-5/10 text-chart-5',
+  running: 'bg-chart-2/10 text-chart-2',
+  general: 'bg-secondary text-secondary-foreground',
+};
+
+export default function TrendingCommunities({ communities }) {
+  return (
+    <Card className="p-4 bg-card border-border">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold font-heading">Communities</h3>
+        </div>
+        <Link to="/communities" className="text-xs text-primary hover:underline">View all</Link>
+      </div>
+      <div className="space-y-2.5">
+        {communities?.slice(0, 4).map(community => (
+          <Link 
+            key={community.id} 
+            to="/communities"
+            className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary transition-colors group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-xs font-bold">
+              {community.name?.[0]}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{community.name}</p>
+              <Badge className={`${categoryColors[community.category] || categoryColors.general} text-[10px] px-1.5 py-0 border-0 mt-0.5`}>
+                {community.category?.replace('_', ' ')}
+              </Badge>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Link>
+        ))}
+      </div>
+    </Card>
+  );
+}
