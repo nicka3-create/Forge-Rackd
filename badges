@@ -1,0 +1,280 @@
+/**
+ * FORGE RACKD — Badge Definitions & Evaluation Engine
+ * Each badge has: id, label, description, emoji, color, tier (bronze/silver/gold/platinum), and a check() fn.
+ * check(workouts, posts, profile) → boolean
+ */
+
+export const BADGES = [
+  // ── WORKOUT VOLUME ─────────────────────────────────────────────
+  {
+    id: 'first_workout',
+    label: 'First Rep',
+    description: 'Log your very first workout',
+    emoji: '🏋️',
+    tier: 'bronze',
+    color: 'from-amber-700 to-amber-500',
+    textColor: 'text-amber-400',
+    borderColor: 'border-amber-600/40',
+    check: (workouts) => workouts.length >= 1,
+  },
+  {
+    id: 'five_workouts',
+    label: 'Getting Warmed Up',
+    description: 'Complete 5 workouts',
+    emoji: '🔥',
+    tier: 'bronze',
+    color: 'from-amber-700 to-amber-500',
+    textColor: 'text-amber-400',
+    borderColor: 'border-amber-600/40',
+    check: (workouts) => workouts.length >= 5,
+  },
+  {
+    id: 'ten_workouts',
+    label: 'Iron Habit',
+    description: 'Complete 10 workouts',
+    emoji: '⚡',
+    tier: 'silver',
+    color: 'from-slate-500 to-slate-300',
+    textColor: 'text-slate-300',
+    borderColor: 'border-slate-400/40',
+    check: (workouts) => workouts.length >= 10,
+  },
+  {
+    id: 'fifty_workouts',
+    label: 'Forged in Iron',
+    description: 'Complete 50 workouts',
+    emoji: '🪨',
+    tier: 'gold',
+    color: 'from-yellow-600 to-yellow-300',
+    textColor: 'text-yellow-400',
+    borderColor: 'border-yellow-500/40',
+    check: (workouts) => workouts.length >= 50,
+  },
+  {
+    id: 'hundred_workouts',
+    label: 'Century Grinder',
+    description: 'Complete 100 workouts — you are relentless',
+    emoji: '💯',
+    tier: 'platinum',
+    color: 'from-violet-600 to-cyan-400',
+    textColor: 'text-violet-300',
+    borderColor: 'border-violet-500/40',
+    check: (workouts) => workouts.length >= 100,
+  },
+
+  // ── STREAKS ────────────────────────────────────────────────────
+  {
+    id: 'streak_3',
+    label: '3-Day Streak',
+    description: 'Work out 3 days in a row',
+    emoji: '🔆',
+    tier: 'bronze',
+    color: 'from-amber-700 to-amber-500',
+    textColor: 'text-amber-400',
+    borderColor: 'border-amber-600/40',
+    check: (workouts) => _longestStreak(workouts) >= 3,
+  },
+  {
+    id: 'streak_7',
+    label: 'First Week Streak',
+    description: 'Work out 7 days in a row',
+    emoji: '📅',
+    tier: 'silver',
+    color: 'from-slate-500 to-slate-300',
+    textColor: 'text-slate-300',
+    borderColor: 'border-slate-400/40',
+    check: (workouts) => _longestStreak(workouts) >= 7,
+  },
+  {
+    id: 'streak_30',
+    label: 'Month of Pain',
+    description: 'Work out 30 days in a row — superhuman',
+    emoji: '🗓️',
+    tier: 'gold',
+    color: 'from-yellow-600 to-yellow-300',
+    textColor: 'text-yellow-400',
+    borderColor: 'border-yellow-500/40',
+    check: (workouts) => _longestStreak(workouts) >= 30,
+  },
+
+  // ── 10 IN 10 DAYS ──────────────────────────────────────────────
+  {
+    id: 'ten_in_ten',
+    label: '10 Workouts in 10 Days',
+    description: 'Log 10 workouts within any 10-day window',
+    emoji: '🚀',
+    tier: 'gold',
+    color: 'from-yellow-600 to-yellow-300',
+    textColor: 'text-yellow-400',
+    borderColor: 'border-yellow-500/40',
+    check: (workouts) => _tenInTen(workouts),
+  },
+
+  // ── PERSONAL RECORDS ───────────────────────────────────────────
+  {
+    id: 'first_pr',
+    label: 'New Personal Record',
+    description: 'Log your first PR',
+    emoji: '🏆',
+    tier: 'bronze',
+    color: 'from-amber-700 to-amber-500',
+    textColor: 'text-amber-400',
+    borderColor: 'border-amber-600/40',
+    check: (workouts) => _totalPRs(workouts) >= 1,
+  },
+  {
+    id: 'five_prs',
+    label: 'PR Machine',
+    description: 'Set 5 personal records',
+    emoji: '🎯',
+    tier: 'silver',
+    color: 'from-slate-500 to-slate-300',
+    textColor: 'text-slate-300',
+    borderColor: 'border-slate-400/40',
+    check: (workouts) => _totalPRs(workouts) >= 5,
+  },
+  {
+    id: 'twenty_prs',
+    label: 'Record Breaker',
+    description: 'Set 20 personal records — you never stop pushing',
+    emoji: '💥',
+    tier: 'gold',
+    color: 'from-yellow-600 to-yellow-300',
+    textColor: 'text-yellow-400',
+    borderColor: 'border-yellow-500/40',
+    check: (workouts) => _totalPRs(workouts) >= 20,
+  },
+
+  // ── VARIETY ────────────────────────────────────────────────────
+  {
+    id: 'variety_pack',
+    label: 'Variety Pack',
+    description: 'Log 4 different workout types',
+    emoji: '🎲',
+    tier: 'silver',
+    color: 'from-slate-500 to-slate-300',
+    textColor: 'text-slate-300',
+    borderColor: 'border-slate-400/40',
+    check: (workouts) => new Set(workouts.map(w => w.type).filter(Boolean)).size >= 4,
+  },
+
+  // ── VOLUME BEAST ───────────────────────────────────────────────
+  {
+    id: 'volume_10k',
+    label: 'Volume Rookie',
+    description: 'Lift a total of 10,000 kg across all workouts',
+    emoji: '📦',
+    tier: 'bronze',
+    color: 'from-amber-700 to-amber-500',
+    textColor: 'text-amber-400',
+    borderColor: 'border-amber-600/40',
+    check: (workouts) => _totalVolume(workouts) >= 10000,
+  },
+  {
+    id: 'volume_100k',
+    label: 'Volume Beast',
+    description: 'Lift a total of 100,000 kg — a titan walks among us',
+    emoji: '🦁',
+    tier: 'platinum',
+    color: 'from-violet-600 to-cyan-400',
+    textColor: 'text-violet-300',
+    borderColor: 'border-violet-500/40',
+    check: (workouts) => _totalVolume(workouts) >= 100000,
+  },
+
+  // ── SOCIAL ─────────────────────────────────────────────────────
+  {
+    id: 'first_post',
+    label: 'Loud & Proud',
+    description: 'Share your first post to the community',
+    emoji: '📣',
+    tier: 'bronze',
+    color: 'from-amber-700 to-amber-500',
+    textColor: 'text-amber-400',
+    borderColor: 'border-amber-600/40',
+    check: (workouts, posts) => posts.length >= 1,
+  },
+  {
+    id: 'ten_posts',
+    label: 'Community Pillar',
+    description: 'Share 10 posts with the community',
+    emoji: '🧱',
+    tier: 'silver',
+    color: 'from-slate-500 to-slate-300',
+    textColor: 'text-slate-300',
+    borderColor: 'border-slate-400/40',
+    check: (workouts, posts) => posts.length >= 10,
+  },
+
+  // ── EARLY BIRD ─────────────────────────────────────────────────
+  {
+    id: 'early_adopter',
+    label: 'Day One',
+    description: 'You were here from the beginning — true OG',
+    emoji: '🌅',
+    tier: 'platinum',
+    color: 'from-violet-600 to-cyan-400',
+    textColor: 'text-violet-300',
+    borderColor: 'border-violet-500/40',
+    // Always earnable — reward just for having a profile
+    check: (workouts, posts, profile) => !!profile,
+  },
+];
+
+// ── HELPER FUNCTIONS ──────────────────────────────────────────────
+
+function _longestStreak(workouts) {
+  if (!workouts.length) return 0;
+  const dates = [...new Set(workouts.map(w => w.date).filter(Boolean))].sort();
+  let max = 1, cur = 1;
+  for (let i = 1; i < dates.length; i++) {
+    const prev = new Date(dates[i - 1]);
+    const curr = new Date(dates[i]);
+    const diff = (curr - prev) / (1000 * 60 * 60 * 24);
+    if (diff === 1) { cur++; max = Math.max(max, cur); }
+    else cur = 1;
+  }
+  return max;
+}
+
+function _tenInTen(workouts) {
+  if (workouts.length < 10) return false;
+  const dates = workouts.map(w => w.date).filter(Boolean).sort();
+  for (let i = 9; i < dates.length; i++) {
+    const start = new Date(dates[i - 9]);
+    const end = new Date(dates[i]);
+    const daySpan = (end - start) / (1000 * 60 * 60 * 24);
+    if (daySpan <= 9) return true;
+  }
+  return false;
+}
+
+function _totalPRs(workouts) {
+  return workouts.reduce((count, w) =>
+    count + (w.exercises?.reduce((c, ex) =>
+      c + (ex.sets?.filter(s => s.is_pr).length || 0), 0) || 0), 0);
+}
+
+function _totalVolume(workouts) {
+  return workouts.reduce((total, w) =>
+    total + (w.exercises?.reduce((t, ex) =>
+      t + (ex.sets?.reduce((s, set) => s + (set.weight || 0) * (set.reps || 0), 0) || 0), 0) || 0), 0);
+}
+
+/**
+ * Evaluate which badges a user has earned.
+ * Returns array of badge ids that should be awarded.
+ */
+export function evaluateBadges(workouts, posts, profile) {
+  return BADGES.filter(b => b.check(workouts, posts, profile)).map(b => b.id);
+}
+
+/**
+ * Given currently stored achievement badge_ids, return new ones not yet stored.
+ */
+export function getNewlyEarnedBadges(earnedIds, workouts, posts, profile) {
+  const allEarned = evaluateBadges(workouts, posts, profile);
+  return allEarned.filter(id => !earnedIds.includes(id));
+}
+
+export const TIER_ORDER = { bronze: 0, silver: 1, gold: 2, platinum: 3 };
