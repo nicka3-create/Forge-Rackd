@@ -1,0 +1,57 @@
+import React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Loader2 } from 'lucide-react';
+import LogStatDialog from '@/components/bodystats/LogStatDialog';
+import StatsSummaryCards from '@/components/bodystats/StatsSummaryCards';
+import BodyTrendChart from '@/components/bodystats/BodyTrendChart';
+import StatsHistoryTable from '@/components/bodystats/StatsHistoryTable';
+
+export default function BodyStats() {
+  const queryClient = useQueryClient();
+
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['bodyStats', user?.email],
+    queryFn: () => base44.entities.BodyStat.filter({ user_email: user.email }, 'date', 200),
+    enabled: !!user?.email,
+    initialData: [],
+  });
+
+  const { data: workouts } = useQuery({
+    queryKey: ['workouts'],
+    queryFn: () => base44.entities.Workout.list('-date', 200),
+    initialData: [],
+  });
+
+  const handleSaved = () => queryClient.invalidateQueries({ queryKey: ['bodyStats', user?.email] });
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">Body Stats</h1>
+          <p className="text-sm text-muted-foreground mt-1">Track measurements & visualize your progress</p>
+        </div>
+        {user && <LogStatDialog user={user} onSaved={handleSaved} />}
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <StatsSummaryCards stats={stats} />
+          <BodyTrendChart stats={stats} workouts={workouts} />
+          <StatsHistoryTable stats={stats} />
+        </div>
+      )}
+    </div>
+  );
+}
