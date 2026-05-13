@@ -1,0 +1,143 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ShoppingBag, Plus, Star, Clock, BarChart3, Loader2, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
+
+const difficulties = ['beginner', 'intermediate', 'advanced', 'elite'];
+const programCategories = ['muscle_building', 'fat_loss', 'strength', 'endurance', 'flexibility', 'competition_prep'];
+const difficultyColors = {
+  beginner: 'bg-accent/10 text-accent',
+  intermediate: 'bg-chart-4/10 text-chart-4',
+  advanced: 'bg-primary/10 text-primary',
+  elite: 'bg-chart-5/10 text-chart-5',
+};
+
+export default function Marketplace() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [program, setProgram] = useState({
+    title: '', description: '', category: 'muscle_building', duration_weeks: 8,
+    difficulty: 'intermediate', price: 0, features: [],
+  });
+  const [featureInput, setFeatureInput] = useState('');
+  const queryClient = useQueryClient();
+
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
+  const { data: programs, isLoading } = useQuery({
+    queryKey: ['programs'],
+    queryFn: () => base44.entities.CoachProgram.list('-created_date', 30),
+    initialData: [],
+  });
+
+  const createProgram = async () => {
+    if (!program.title) return;
+    await base44.entities.CoachProgram.create({
+      ...program,
+      coach_name: user?.full_name,
+      coach_email: user?.email,
+      rating: 0,
+      review_count: 0,
+      buyers: [],
+    });
+    queryClient.invalidateQueries({ queryKey: ['programs'] });
+    setDialogOpen(false);
+    setProgram({ title: '', description: '', category: 'muscle_building', duration_weeks: 8, difficulty: 'intermediate', price: 0, features: [] });
+    toast.success('Program listed!');
+  };
+
+  const addFeature = () => {
+    if (!featureInput.trim()) return;
+    setProgram(prev => ({ ...prev, features: [...prev.features, featureInput] }));
+    setFeatureInput('');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">Programs</h1>
+          <p className="text-sm text-muted-foreground mt-1">Expert training programs from top coaches</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-1.5" /> List Program</Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+            <DialogHeader><DialogTitle className="font-heading">List a Program</DialogTitle></DialogHeader>
+            <div className="space-y-3 mt-2">
+              <Input placeholder="Program title" value={program.title} onChange={(e) => setProgram(prev => ({ ...prev, title: e.target.value }))} className="bg-secondary border-0" />
+              <Textarea placeholder="Description" value={program.description} onChange={(e) => setProgram(prev => ({ ...prev, description: e.target.value }))} className="bg-secondary border-0 resize-none" />
+              <div className="grid grid-cols-2 gap-3">
+                <Select value={program.category} onValueChange={(v) => setProgram(prev => ({ ...prev, category: v }))}>
+                  <SelectTrigger className="bg-secondary border-0 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{programCategories.map(c => <SelectItem key={c} value={c} className="text-xs capitalize">{c.replace('_', ' ')}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={program.difficulty} onValueChange={(v) => setProgram(prev => ({ ...prev, difficulty: v }))}>
+                  <SelectTrigger className="bg-secondary border-0 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{difficulties.map(d => <SelectItem key={d} value={d} className="text-xs capitalize">{d}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input type="number" placeholder="Weeks" value={program.duration_weeks || ''} onChange={(e) => setProgram(prev => ({ ...prev, duration_weeks: Number(e.target.value) }))} className="bg-secondary border-0" />
+                <Input type="number" placeholder="Price (USD)" value={program.price || ''} onChange={(e) => setProgram(prev => ({ ...prev, price: Number(e.target.value) }))} className="bg-secondary border-0" />
+              </div>
+              <div className="flex gap-2">
+                <Input placeholder="Add a feature" value={featureInput} onChange={(e) => setFeatureInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addFeature()} className="bg-secondary border-0" />
+                <Button variant="outline" onClick={addFeature}>Add</Button>
+              </div>
+              {program.features.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">{program.features.map((f, i) => <Badge key={i} variant="secondary" className="text-xs">{f}</Badge>)}</div>
+              )}
+              <Button onClick={createProgram} className="w-full bg-primary hover:bg-primary/90">List Program</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+      ) : programs.length === 0 ? (
+        <div className="text-center py-16">
+          <ShoppingBag className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">No programs listed yet. Be the first coach!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {programs.map(p => (
+            <Card key={p.id} className="bg-card border-border overflow-hidden hover:border-primary/20 transition-colors">
+              <div className="h-2 bg-gradient-to-r from-primary to-accent" />
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="font-heading font-bold text-sm">{p.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">by {p.coach_name || 'Coach'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-primary">${p.price}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>
+                <div className="flex items-center gap-2 flex-wrap mb-3">
+                  <Badge className={`${difficultyColors[p.difficulty] || 'bg-secondary text-secondary-foreground'} border-0 text-[10px] capitalize`}>{p.difficulty}</Badge>
+                  <Badge variant="secondary" className="text-[10px] capitalize">{p.category?.replace('_', ' ')}</Badge>
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{p.duration_weeks}w</span>
+                </div>
+                {p.features?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">{p.features.slice(0, 3).map((f, i) => <span key={i} className="text-[10px] text-muted-foreground">• {f}</span>)}</div>
+                )}
+                <Button className="w-full bg-primary hover:bg-primary/90 text-xs h-8">Get Program</Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
