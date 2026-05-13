@@ -1,0 +1,45 @@
+{
+  "name": "Community",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "bodybuilding",
+        "powerlifting",
+        "fat_loss",
+        "crossfit",
+        "calisthenics",
+        "running",
+        "general"
+      ]
+    },
+    "cover_image": {
+      "type": "string"
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Member emails"
+    },
+    "member_count": {
+      "type": "number",
+      "default": 0
+    },
+    "rules": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ]
+}
