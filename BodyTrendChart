@@ -1,0 +1,153 @@
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ReferenceLine
+} from 'recharts';
+import { format, parseISO } from 'date-fns';
+
+const BODY_METRICS = [
+  { key: 'weight_kg', label: 'Weight (kg)', color: '#a855f7' },
+  { key: 'body_fat_pct', label: 'Body Fat (%)', color: '#f97316' },
+  { key: 'chest_cm', label: 'Chest (cm)', color: '#3b82f6' },
+  { key: 'waist_cm', label: 'Waist (cm)', color: '#ef4444' },
+  { key: 'arms_cm', label: 'Arms (cm)', color: '#84cc16' },
+  { key: 'thighs_cm', label: 'Thighs (cm)', color: '#ec4899' },
+  { key: 'shoulders_cm', label: 'Shoulders (cm)', color: '#14b8a6' },
+  { key: 'hips_cm', label: 'Hips (cm)', color: '#f59e0b' },
+];
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg p-3 text-xs shadow-xl">
+      <p className="font-semibold mb-1.5 text-foreground">{label}</p>
+      {payload.map(p => (
+        <div key={p.dataKey} className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+          <span className="text-muted-foreground">{p.name}:</span>
+          <span className="font-medium text-foreground">{p.value?.toFixed(1)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default function BodyTrendChart({ stats, workouts }) {
+  const [activeMetrics, setActiveMetrics] = useState(['weight_kg', 'body_fat_pct']);
+  const [showVolume, setShowVolume] = useState(true);
+
+  const toggleMetric = (key) => {
+    setActiveMetrics(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  // Build chart data: merge body stats + weekly workout volume
+  const volumeByDate = {};
+  workouts.forEach(w => {
+    if (!w.date) return;
+    const d = w.date.slice(0, 10);
+    let vol = 0;
+    (w.exercises || []).forEach(ex => (ex.sets || []).forEach(s => { vol += (s.weight || 0) * (s.reps || 0); }));
+    volumeByDate[d] = (volumeByDate[d] || 0) + vol;
+  });
+
+  const chartData = stats.map(s => {
+    const entry = { date: s.date, label: format(parseISO(s.date), 'MMM d') };
+    BODY_METRICS.forEach(m => { if (s[m.key] != null) entry[m.key] = s[m.key]; });
+    entry.volume = Math.round((volumeByDate[s.date] || 0) / 100); // scaled /100 for readability
+    return entry;
+  });
+
+  const availableMetrics = BODY_METRICS.filter(m => stats.some(s => s[m.key] != null));
+
+  if (!stats.length) return (
+    <Card className="bg-card border-border p-12 text-center">
+      <p className="text-3xl mb-3">📊</p>
+      <p className="font-medium">No data yet</p>
+      <p className="text-sm text-muted-foreground mt-1">Log your first body stats to see trends here.</p>
+    </Card>
+  );
+
+  return (
+    <Card className="bg-card border-border p-5 space-y-4">
+      <h2 className="font-heading font-bold text-sm">Progress Trends</h2>
+
+      {/* Metric toggles */}
+      <div className="flex flex-wrap gap-1.5">
+        {availableMetrics.map(m => (
+          <button
+            key={m.key}
+            onClick={() => toggleMetric(m.key)}
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all ${
+              activeMetrics.includes(m.key)
+                ? 'border-transparent text-background font-semibold'
+                : 'border-border text-muted-foreground hover:border-foreground/30'
+            }`}
+            style={activeMetrics.includes(m.key) ? { background: m.color } : {}}
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: m.color }} />
+            {m.label}
+          </button>
+        ))}
+        <button
+          onClick={() => setShowVolume(v => !v)}
+          className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all ${
+            showVolume ? 'bg-muted border-transparent text-foreground font-semibold' : 'border-border text-muted-foreground'
+          }`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+          Workout Volume
+        </button>
+      </div>
+
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 8% 15%)" />
+          <XAxis
+            dataKey="label"
+            tick={{ fill: 'hsl(20 6% 50%)', fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fill: 'hsl(20 6% 50%)', fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            width={40}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          {activeMetrics.map(key => {
+            const metric = BODY_METRICS.find(m => m.key === key);
+            return (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                name={metric.label}
+                stroke={metric.color}
+                strokeWidth={2}
+                dot={{ r: 3, fill: metric.color }}
+                activeDot={{ r: 5 }}
+                connectNulls
+              />
+            );
+          })}
+          {showVolume && (
+            <Line
+              type="monotone"
+              dataKey="volume"
+              name="Volume (×100kg)"
+              stroke="hsl(20 6% 40%)"
+              strokeWidth={1.5}
+              strokeDasharray="5 3"
+              dot={false}
+              connectNulls
+            />
+          )}
+        </LineChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+}
