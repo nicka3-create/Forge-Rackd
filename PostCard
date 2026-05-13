@@ -1,0 +1,146 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Heart, MessageCircle, Share2, Trophy, Lightbulb, HelpCircle, Send } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
+
+const typeConfig = {
+  pr: { icon: Trophy, color: 'text-primary', bg: 'bg-primary/10', label: 'New PR' },
+  tip: { icon: Lightbulb, color: 'text-accent', bg: 'bg-accent/10', label: 'Tip' },
+  question: { icon: HelpCircle, color: 'text-chart-4', bg: 'bg-chart-4/10', label: 'Question' },
+  transformation: { icon: Trophy, color: 'text-chart-3', bg: 'bg-chart-3/10', label: 'Transformation' },
+  update: null,
+};
+
+export default function PostCard({ post, userEmail }) {
+  const [comment, setComment] = useState('');
+  const [showComments, setShowComments] = useState(false);
+  const queryClient = useQueryClient();
+
+  const isLiked = post.likes?.includes(userEmail);
+  const likeCount = post.likes?.length || 0;
+  const commentCount = post.comments?.length || 0;
+
+  const handleLike = async () => {
+    const newLikes = isLiked 
+      ? post.likes.filter(e => e !== userEmail) 
+      : [...(post.likes || []), userEmail];
+    await base44.entities.Post.update(post.id, { likes: newLikes });
+    queryClient.invalidateQueries({ queryKey: ['posts'] });
+  };
+
+  const handleComment = async () => {
+    if (!comment.trim()) return;
+    const newComments = [...(post.comments || []), {
+      user_email: userEmail,
+      user_name: 'You',
+      content: comment,
+      created_at: new Date().toISOString()
+    }];
+    await base44.entities.Post.update(post.id, { comments: newComments });
+    setComment('');
+    queryClient.invalidateQueries({ queryKey: ['posts'] });
+  };
+
+  const tc = typeConfig[post.type];
+
+  return (
+    <Card className="bg-card border-border overflow-hidden">
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="w-9 h-9">
+            <AvatarFallback className="bg-secondary text-xs font-semibold">
+              {(post.author_name || post.created_by || '?')[0]?.toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate">{post.author_name || post.created_by}</p>
+            <p className="text-xs text-muted-foreground">
+              {post.created_date ? formatDistanceToNow(new Date(post.created_date), { addSuffix: true }) : ''}
+            </p>
+          </div>
+          {tc && (
+            <Badge className={`${tc.bg} ${tc.color} border-0 text-xs`}>
+              <tc.icon className="w-3 h-3 mr-1" />
+              {tc.label}
+            </Badge>
+          )}
+        </div>
+
+        {/* Content */}
+        <p className="text-sm leading-relaxed mb-3 whitespace-pre-wrap">{post.content}</p>
+
+        {/* Images */}
+        {post.image_urls?.length > 0 && (
+          <div className="rounded-xl overflow-hidden mb-3 grid gap-1" 
+            style={{ gridTemplateColumns: post.image_urls.length > 1 ? '1fr 1fr' : '1fr' }}
+          >
+            {post.image_urls.map((url, i) => (
+              <img key={i} src={url} alt="" className="w-full h-48 object-cover" />
+            ))}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 pt-2 border-t border-border">
+          <Button 
+            variant="ghost" size="sm" 
+            onClick={handleLike}
+            className={`text-xs gap-1.5 ${isLiked ? 'text-destructive' : 'text-muted-foreground'}`}
+          >
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-destructive' : ''}`} />
+            {likeCount > 0 && likeCount}
+          </Button>
+          <Button 
+            variant="ghost" size="sm" 
+            onClick={() => setShowComments(!showComments)}
+            className="text-xs gap-1.5 text-muted-foreground"
+          >
+            <MessageCircle className="w-4 h-4" />
+            {commentCount > 0 && commentCount}
+          </Button>
+          <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-muted-foreground ml-auto">
+            <Share2 className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Comments */}
+        {showComments && (
+          <div className="mt-3 pt-3 border-t border-border space-y-3">
+            {post.comments?.map((c, i) => (
+              <div key={i} className="flex gap-2">
+                <Avatar className="w-6 h-6">
+                  <AvatarFallback className="bg-secondary text-[10px]">
+                    {(c.user_name || c.user_email)?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 bg-secondary rounded-lg px-3 py-2">
+                  <p className="text-xs font-medium">{c.user_name || c.user_email}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{c.content}</p>
+                </div>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <Input 
+                placeholder="Write a comment..." 
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleComment()}
+                className="bg-secondary border-0 h-8 text-xs"
+              />
+              <Button size="sm" variant="ghost" onClick={handleComment} className="h-8 px-2">
+                <Send className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
