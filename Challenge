@@ -1,0 +1,56 @@
+{
+  "name": "Challenge",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "workout_count",
+        "volume_lifted"
+      ],
+      "description": "Metric being tracked"
+    },
+    "goal": {
+      "type": "number",
+      "description": "Target number to reach"
+    },
+    "unit": {
+      "type": "string",
+      "description": "e.g. workouts, kg"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Participant emails"
+    },
+    "creator_name": {
+      "type": "string"
+    },
+    "emoji": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "type",
+    "goal",
+    "start_date",
+    "end_date"
+  ]
+}
