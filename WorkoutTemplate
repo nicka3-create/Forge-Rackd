@@ -1,0 +1,60 @@
+{
+  "name": "WorkoutTemplate",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "strength",
+        "cardio",
+        "hiit",
+        "flexibility",
+        "crossfit",
+        "powerlifting",
+        "bodybuilding",
+        "other"
+      ]
+    },
+    "exercises": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reps": {
+                  "type": "number"
+                },
+                "weight": {
+                  "type": "number"
+                },
+                "is_pr": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "name"
+  ]
+}
