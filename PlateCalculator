@@ -1,0 +1,192 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Calculator, ChevronDown } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+
+const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25]; // kg per plate
+const BAR_OPTIONS = [20, 15, 10]; // standard bar weights
+
+const PLATE_COLORS = {
+  25: 'bg-red-500',
+  20: 'bg-blue-500',
+  15: 'bg-yellow-400',
+  10: 'bg-green-500',
+  5: 'bg-white',
+  2.5: 'bg-gray-300',
+  1.25: 'bg-gray-500',
+};
+
+function calculatePlates(targetWeight, barWeight) {
+  const remaining = (targetWeight - barWeight) / 2;
+  if (remaining < 0) return null; // target lighter than bar
+  let left = remaining;
+  const result = [];
+  for (const plate of PLATES) {
+    const count = Math.floor(left / plate);
+    if (count > 0) {
+      result.push({ weight: plate, count });
+      left -= count * plate;
+      left = Math.round(left * 1000) / 1000; // float precision fix
+    }
+  }
+  const achieved = barWeight + result.reduce((s, p) => s + p.weight * p.count * 2, 0);
+  return { plates: result, achieved };
+}
+
+export default function PlateCalculator() {
+  const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState('');
+  const [barWeight, setBarWeight] = useState(20);
+  const panelRef = useRef(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (panelRef.current && !panelRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const targetNum = parseFloat(target);
+  const result = target && !isNaN(targetNum) ? calculatePlates(targetNum, barWeight) : null;
+  const isImpossible = result === null && target && !isNaN(targetNum);
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50" ref={panelRef}>
+      {/* Panel */}
+      {open && (
+        <div className="mb-3 w-72 bg-card border border-border rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/50">
+            <div className="flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-primary" />
+              <span className="font-heading font-bold text-sm">Plate Calculator</span>
+            </div>
+            <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {/* Bar weight selector */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Bar Weight</label>
+              <div className="flex gap-2">
+                {BAR_OPTIONS.map(b => (
+                  <button
+                    key={b}
+                    onClick={() => setBarWeight(b)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                      barWeight === b
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-secondary border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {b} kg
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Target weight */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Target Weight (kg)</label>
+              <Input
+                type="number"
+                step="0.5"
+                placeholder={`e.g. ${barWeight + 40}`}
+                value={target}
+                onChange={e => setTarget(e.target.value)}
+                className="bg-secondary border-0 h-10 text-lg font-bold text-center"
+                autoFocus
+              />
+            </div>
+
+            {/* Result */}
+            {isImpossible && (
+              <p className="text-xs text-destructive text-center">Target weight is less than the bar ({barWeight} kg)</p>
+            )}
+
+            {result && (
+              <div className="space-y-3">
+                {/* Visual barbell */}
+                <div className="flex items-center justify-center gap-1 py-2">
+                  {/* Left plates (reversed for visual) */}
+                  <div className="flex items-center gap-0.5 flex-row-reverse">
+                    {result.plates.map(p =>
+                      Array.from({ length: p.count }).map((_, i) => (
+                        <div
+                          key={`l-${p.weight}-${i}`}
+                          className={`${PLATE_COLORS[p.weight]} rounded-sm flex items-center justify-center text-[8px] font-bold text-background/80`}
+                          style={{ width: p.weight >= 20 ? 18 : p.weight >= 10 ? 14 : 10, height: 36 }}
+                        >
+                          {p.weight >= 5 ? p.weight : ''}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {/* Bar */}
+                  <div className="h-3 bg-muted-foreground/50 rounded-full w-12 flex-shrink-0" />
+                  {/* Right plates */}
+                  <div className="flex items-center gap-0.5">
+                    {result.plates.map(p =>
+                      Array.from({ length: p.count }).map((_, i) => (
+                        <div
+                          key={`r-${p.weight}-${i}`}
+                          className={`${PLATE_COLORS[p.weight]} rounded-sm flex items-center justify-center text-[8px] font-bold text-background/80`}
+                          style={{ width: p.weight >= 20 ? 18 : p.weight >= 10 ? 14 : 10, height: 36 }}
+                        >
+                          {p.weight >= 5 ? p.weight : ''}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Plate breakdown */}
+                {result.plates.length === 0 ? (
+                  <p className="text-xs text-center text-muted-foreground">Just the bar!</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground font-medium">Per side:</p>
+                    {result.plates.map(p => (
+                      <div key={p.weight} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3 h-3 rounded-sm ${PLATE_COLORS[p.weight]} flex-shrink-0`} />
+                          <span className="font-medium">{p.weight} kg</span>
+                        </div>
+                        <span className="text-muted-foreground">× {p.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Total */}
+                <div className="border-t border-border pt-3 flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Total on bar</span>
+                  <span className={`font-heading font-bold text-lg ${result.achieved === targetNum ? 'text-accent' : 'text-primary'}`}>
+                    {result.achieved} kg
+                    {result.achieved !== targetNum && (
+                      <span className="text-xs text-muted-foreground font-normal ml-1">(closest)</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!target && (
+              <p className="text-xs text-muted-foreground text-center pb-1">Enter a target weight to calculate plates</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FAB */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 flex items-center justify-center transition-all active:scale-95"
+      >
+        <Calculator className="w-6 h-6 text-primary-foreground" />
+      </button>
+    </div>
+  );
+}
