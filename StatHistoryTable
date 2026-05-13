@@ -1,0 +1,58 @@
+import React from 'react';
+import { Card } from '@/components/ui/card';
+import { format, parseISO } from 'date-fns';
+
+const COLS = [
+  { key: 'weight_kg', label: 'Weight', unit: 'kg' },
+  { key: 'body_fat_pct', label: 'Body Fat', unit: '%' },
+  { key: 'chest_cm', label: 'Chest', unit: 'cm' },
+  { key: 'arms_cm', label: 'Arms', unit: 'cm' },
+  { key: 'waist_cm', label: 'Waist', unit: 'cm' },
+  { key: 'hips_cm', label: 'Hips', unit: 'cm' },
+  { key: 'thighs_cm', label: 'Thighs', unit: 'cm' },
+  { key: 'shoulders_cm', label: 'Shoulders', unit: 'cm' },
+];
+
+export default function StatsHistoryTable({ stats }) {
+  if (!stats?.length) return null;
+
+  // Only show columns that have at least one value
+  const activeCols = COLS.filter(c => stats.some(s => s[c.key] != null));
+  const sorted = [...stats].reverse();
+
+  return (
+    <Card className="bg-card border-border overflow-hidden">
+      <div className="p-4 border-b border-border">
+        <h2 className="font-heading font-bold text-sm">History</h2>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left px-4 py-2.5 text-muted-foreground font-medium">Date</th>
+              {activeCols.map(c => (
+                <th key={c.key} className="text-right px-3 py-2.5 text-muted-foreground font-medium whitespace-nowrap">
+                  {c.label} ({c.unit})
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row, i) => (
+              <tr key={row.id} className={`border-b border-border/50 ${i % 2 === 0 ? '' : 'bg-secondary/30'}`}>
+                <td className="px-4 py-2.5 font-medium whitespace-nowrap">
+                  {format(parseISO(row.date), 'MMM d, yyyy')}
+                </td>
+                {activeCols.map(c => (
+                  <td key={c.key} className="text-right px-3 py-2.5 text-muted-foreground">
+                    {row[c.key] != null ? row[c.key].toFixed(1) : '—'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
