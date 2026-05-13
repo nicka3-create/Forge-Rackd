@@ -1,0 +1,55 @@
+{
+  "name": "SupplementReview",
+  "type": "object",
+  "properties": {
+    "product_name": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "protein",
+        "pre_workout",
+        "creatine",
+        "bcaa",
+        "vitamins",
+        "fat_burner",
+        "mass_gainer",
+        "other"
+      ]
+    },
+    "rating": {
+      "type": "number",
+      "description": "1-5 rating"
+    },
+    "review": {
+      "type": "string"
+    },
+    "pros": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reviewer_name": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "product_name",
+    "rating",
+    "review"
+  ]
+}
