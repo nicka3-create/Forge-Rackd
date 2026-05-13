@@ -1,0 +1,46 @@
+{
+  "name": "BodyStat",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "weight_kg": {
+      "type": "number",
+      "description": "Body weight in kg"
+    },
+    "body_fat_pct": {
+      "type": "number",
+      "description": "Body fat percentage"
+    },
+    "chest_cm": {
+      "type": "number"
+    },
+    "waist_cm": {
+      "type": "number"
+    },
+    "hips_cm": {
+      "type": "number"
+    },
+    "arms_cm": {
+      "type": "number"
+    },
+    "thighs_cm": {
+      "type": "number"
+    },
+    "shoulders_cm": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "date"
+  ]
+}
