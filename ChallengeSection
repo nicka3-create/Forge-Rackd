@@ -1,0 +1,159 @@
+import React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Swords, Users, CalendarDays, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { format, parseISO, differenceInDays, isPast } from 'date-fns';
+import CreateChallengeDialog from './CreateChallengeDialog';
+
+export default function ChallengesSection({ user }) {
+  const queryClient = useQueryClient();
+
+  const { data: challenges, isLoading } = useQuery({
+    queryKey: ['challenges'],
+    queryFn: () => base44.entities.Challenge.list('-created_date', 50),
+    initialData: [],
+  });
+
+  const { data: workouts } = useQuery({
+    queryKey: ['workouts'],
+    queryFn: () => base44.entities.Workout.list('-date', 500),
+    initialData: [],
+  });
+
+  const toggleJoin = async (challenge) => {
+    const joined = challenge.participants?.includes(user?.email);
+    const updated = joined
+      ? challenge.participants.filter(e => e !== user?.email)
+      : [...(challenge.participants || []), user?.email];
+    await base44.entities.Challenge.update(challenge.id, { participants: updated });
+    queryClient.invalidateQueries({ queryKey: ['challenges'] });
+    toast.success(joined ? 'Left challenge' : 'Joined challenge! 💪');
+  };
+
+  const getUserProgress = (challenge) => {
+    if (!user?.email) return 0;
+    const myWorkouts = workouts.filter(w => {
+      if (w.created_by !== user.email) return false;
+      try {
+        const d = parseISO(w.date);
+        return d >= parseISO(challenge.start_date) && d <= parseISO(challenge.end_date);
+      } catch { return false; }
+    });
+
+    if (challenge.type === 'workout_count') return myWorkouts.length;
+    let vol = 0;
+    for (const w of myWorkouts) {
+      for (const ex of (w.exercises || [])) {
+        for (const set of (ex.sets || [])) {
+          vol += (set.weight || 0) * (set.reps || 0);
+        }
+      }
+    }
+    return Math.round(vol);
+  };
+
+  const activeChallenges = challenges.filter(c => !isPast(parseISO(c.end_date)));
+  const pastChallenges = challenges.filter(c => isPast(parseISO(c.end_date)));
+
+  const renderChallenge = (challenge) => {
+    const joined = challenge.participants?.includes(user?.email);
+    const progress = getUserProgress(challenge);
+    const pct = Math.min(100, Math.round((progress / challenge.goal) * 100));
+    const daysLeft = differenceInDays(parseISO(challenge.end_date), new Date());
+    const expired = isPast(parseISO(challenge.end_date));
+
+    return (
+      <Card key={challenge.id} className="bg-card border-border p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{challenge.emoji || '🎯'}</span>
+            <div>
+              <h3 className="font-heading font-bold text-sm">{challenge.title}</h3>
+              {challenge.description && (
+                <p className="text-xs text-muted-foreground line-clamp-1">{challenge.description}</p>
+              )}
+            </div>
+          </div>
+          <Badge variant="outline" className={`text-[10px] flex-shrink-0 ${expired ? 'border-muted-foreground/30 text-muted-foreground' : 'border-primary/40 text-primary'}`}>
+            {expired ? 'Ended' : `${daysLeft}d left`}
+          </Badge>
+        </div>
+
+        {/* Progress bar (only for joined) */}
+        {joined && (
+          <div>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-muted-foreground">Your progress</span>
+              <span className="font-medium text-primary">{progress} / {challenge.goal} {challenge.unit}</span>
+            </div>
+            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {pct >= 100 && <p className="text-xs text-accent font-bold mt-1">✅ Goal reached!</p>}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Users className="w-3 h-3" />{challenge.participants?.length || 0}</span>
+            <span className="flex items-center gap-1">
+              <CalendarDays className="w-3 h-3" />
+              {format(parseISO(challenge.start_date), 'MMM d')} – {format(parseISO(challenge.end_date), 'MMM d')}
+            </span>
+          </div>
+          {!expired && (
+            <Button
+              size="sm"
+              variant={joined ? 'outline' : 'default'}
+              onClick={() => toggleJoin(challenge)}
+              className={`text-xs h-7 ${!joined ? 'bg-primary hover:bg-primary/90' : ''}`}
+            >
+              {joined ? 'Leave' : 'Join'}
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Swords className="w-4 h-4 text-primary" />
+          <h2 className="font-heading font-bold text-sm">Fitness Challenges</h2>
+        </div>
+        <CreateChallengeDialog user={user} onCreated={() => queryClient.invalidateQueries({ queryKey: ['challenges'] })} />
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+      ) : activeChallenges.length === 0 && pastChallenges.length === 0 ? (
+        <Card className="bg-card border-border p-8 text-center">
+          <p className="text-2xl mb-2">⚔️</p>
+          <p className="text-sm font-medium">No challenges yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Be the first to create one!</p>
+        </Card>
+      ) : (
+        <>
+          {activeChallenges.length > 0 && (
+            <div className="space-y-3">{activeChallenges.map(renderChallenge)}</div>
+          )}
+          {pastChallenges.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Past Challenges</p>
+              <div className="space-y-3 opacity-60">{pastChallenges.map(renderChallenge)}</div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
