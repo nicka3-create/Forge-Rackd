@@ -1,0 +1,21 @@
+{
+  "name": "Achievement",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "badge_id": {
+      "type": "string",
+      "description": "Unique badge identifier"
+    },
+    "earned_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_email",
+    "badge_id"
+  ]
+}
