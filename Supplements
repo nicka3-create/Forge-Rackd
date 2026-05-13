@@ -1,0 +1,139 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Pill, Plus, Star, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { toast } from 'sonner';
+
+const suppCategories = ['protein', 'pre_workout', 'creatine', 'bcaa', 'vitamins', 'fat_burner', 'mass_gainer', 'other'];
+
+export default function Supplements() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [review, setReview] = useState({
+    product_name: '', brand: '', category: 'protein', rating: 5, review: '', pros: [], cons: [],
+  });
+  const [proInput, setProInput] = useState('');
+  const [conInput, setConInput] = useState('');
+  const queryClient = useQueryClient();
+
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
+  const { data: reviews, isLoading } = useQuery({
+    queryKey: ['supplements'],
+    queryFn: () => base44.entities.SupplementReview.list('-created_date', 30),
+    initialData: [],
+  });
+
+  const submitReview = async () => {
+    if (!review.product_name || !review.review) return;
+    await base44.entities.SupplementReview.create({
+      ...review,
+      reviewer_name: user?.full_name,
+    });
+    queryClient.invalidateQueries({ queryKey: ['supplements'] });
+    setDialogOpen(false);
+    setReview({ product_name: '', brand: '', category: 'protein', rating: 5, review: '', pros: [], cons: [] });
+    toast.success('Review submitted!');
+  };
+
+  const renderStars = (rating) => (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map(i => (
+        <Star key={i} className={`w-3 h-3 ${i <= rating ? 'fill-primary text-primary' : 'text-muted-foreground/30'}`} />
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">Supplements</h1>
+          <p className="text-sm text-muted-foreground mt-1">Honest reviews from the community</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-1.5" /> Review</Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+            <DialogHeader><DialogTitle className="font-heading">Write a Review</DialogTitle></DialogHeader>
+            <div className="space-y-3 mt-2">
+              <Input placeholder="Product name" value={review.product_name} onChange={(e) => setReview(prev => ({ ...prev, product_name: e.target.value }))} className="bg-secondary border-0" />
+              <Input placeholder="Brand" value={review.brand} onChange={(e) => setReview(prev => ({ ...prev, brand: e.target.value }))} className="bg-secondary border-0" />
+              <div className="grid grid-cols-2 gap-3">
+                <Select value={review.category} onValueChange={(v) => setReview(prev => ({ ...prev, category: v }))}>
+                  <SelectTrigger className="bg-secondary border-0 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{suppCategories.map(c => <SelectItem key={c} value={c} className="text-xs capitalize">{c.replace('_', ' ')}</SelectItem>)}</SelectContent>
+                </Select>
+                <div className="flex items-center gap-1 justify-center">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <button key={i} onClick={() => setReview(prev => ({ ...prev, rating: i }))}>
+                      <Star className={`w-5 h-5 transition-colors ${i <= review.rating ? 'fill-primary text-primary' : 'text-muted-foreground/30 hover:text-primary/50'}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Textarea placeholder="Your review..." value={review.review} onChange={(e) => setReview(prev => ({ ...prev, review: e.target.value }))} className="bg-secondary border-0 resize-none" />
+              <div className="flex gap-2">
+                <Input placeholder="Add a pro" value={proInput} onChange={(e) => setProInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && proInput.trim()) { setReview(prev => ({ ...prev, pros: [...prev.pros, proInput] })); setProInput(''); }}} className="bg-secondary border-0" />
+                <Input placeholder="Add a con" value={conInput} onChange={(e) => setConInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && conInput.trim()) { setReview(prev => ({ ...prev, cons: [...prev.cons, conInput] })); setConInput(''); }}} className="bg-secondary border-0" />
+              </div>
+              {(review.pros.length > 0 || review.cons.length > 0) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {review.pros.map((p, i) => <Badge key={`p${i}`} className="bg-accent/10 text-accent border-0 text-xs">✓ {p}</Badge>)}
+                  {review.cons.map((c, i) => <Badge key={`c${i}`} className="bg-destructive/10 text-destructive border-0 text-xs">✗ {c}</Badge>)}
+                </div>
+              )}
+              <Button onClick={submitReview} className="w-full bg-primary hover:bg-primary/90">Submit Review</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+      ) : reviews.length === 0 ? (
+        <div className="text-center py-16">
+          <Pill className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">No reviews yet. Share your experience!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {reviews.map(r => (
+            <Card key={r.id} className="p-4 bg-card border-border">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h3 className="font-heading font-bold text-sm">{r.product_name}</h3>
+                  {r.brand && <p className="text-xs text-muted-foreground">{r.brand}</p>}
+                </div>
+                <Badge variant="secondary" className="text-[10px] capitalize">{r.category?.replace('_', ' ')}</Badge>
+              </div>
+              <div className="mb-2">{renderStars(r.rating)}</div>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-3">{r.review}</p>
+              {(r.pros?.length > 0 || r.cons?.length > 0) && (
+                <div className="space-y-1.5">
+                  {r.pros?.map((p, i) => (
+                    <div key={`p${i}`} className="flex items-center gap-1.5 text-xs">
+                      <ThumbsUp className="w-3 h-3 text-accent" /><span className="text-accent">{p}</span>
+                    </div>
+                  ))}
+                  {r.cons?.map((c, i) => (
+                    <div key={`c${i}`} className="flex items-center gap-1.5 text-xs">
+                      <ThumbsDown className="w-3 h-3 text-destructive" /><span className="text-destructive">{c}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground mt-3">by {r.reviewer_name || 'Anonymous'}</p>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
