@@ -1,0 +1,78 @@
+{
+  "name": "CoachProgram",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "coach_name": {
+      "type": "string"
+    },
+    "coach_email": {
+      "type": "string"
+    },
+    "coach_avatar": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "muscle_building",
+        "fat_loss",
+        "strength",
+        "endurance",
+        "flexibility",
+        "competition_prep"
+      ]
+    },
+    "duration_weeks": {
+      "type": "number"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced",
+        "elite"
+      ]
+    },
+    "price": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "cover_image": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number"
+    },
+    "review_count": {
+      "type": "number",
+      "default": 0
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "buyers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "price"
+  ]
+}
